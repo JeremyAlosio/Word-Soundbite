@@ -1052,6 +1052,7 @@ module.exports = class WordSoundbite extends Plugin {
     const folder   = src.substring(0, src.lastIndexOf("/"));
     const manifest = await loadManifest(this.app.vault, folder);
     for (const key of Object.keys(manifest)) {
+      if (!Array.isArray(manifest[key])) continue;
       manifest[key] = manifest[key].filter((p) => p !== src);
       if (manifest[key].length === 0) delete manifest[key];
     }
