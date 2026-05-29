@@ -34,6 +34,7 @@ const DEFAULT_SETTINGS = {
   relativeFolderName: "sounds",
   absoluteFolderPath: "",
   quality:            "medium",
+  fileNamePattern:    "{word}_{YYYY}-{MM}-{DD}_{HH}-{mm}-{SS}",
 };
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
@@ -162,7 +163,7 @@ class TrimModal extends Modal {
       if (this.duration > 0) return; // already set
       this.duration = dur;
       this.durationEl.setText(`Duration: ${dur.toFixed(2)}s`);
-      if (endCheck.checked) this.endInput.value = dur.toFixed(2);
+      if (this.endCheck && this.endCheck.checked) this.endInput.value = dur.toFixed(2);
       updateTrimInfo();
     };
 
@@ -195,8 +196,8 @@ class TrimModal extends Modal {
 
     // Start time row
     const startRow = contentEl.createEl("div", { cls: "sb-input-row" });
-    const startCheck = startRow.createEl("input", { type: "checkbox" });
-    startCheck.checked = true;
+    this.startCheck = startRow.createEl("input", { type: "checkbox" });
+    this.startCheck.checked = true;
     startRow.createEl("label", { text: "Start" });
     this.startInput = startRow.createEl("input", { type: "number", value: "0" });
     this.startInput.min = "0";
@@ -205,17 +206,17 @@ class TrimModal extends Modal {
     this.startInput.disabled = true;
     this.startInput.style.opacity = "0.5";
 
-    startCheck.addEventListener("change", () => {
-      this.startInput.disabled = startCheck.checked;
-      this.startInput.style.opacity = startCheck.checked ? "0.5" : "1";
-      if (startCheck.checked) this.startInput.value = "0";
+    this.startCheck.addEventListener("change", () => {
+      this.startInput.disabled = this.startCheck.checked;
+      this.startInput.style.opacity = this.startCheck.checked ? "0.5" : "1";
+      if (this.startCheck.checked) this.startInput.value = "0";
       updateTrimInfo();
     });
 
     // End time row
     const endRow = contentEl.createEl("div", { cls: "sb-input-row" });
-    const endCheck = endRow.createEl("input", { type: "checkbox" });
-    endCheck.checked = true;
+    this.endCheck = endRow.createEl("input", { type: "checkbox" });
+    this.endCheck.checked = true;
     endRow.createEl("label", { text: "End" });
     this.endInput = endRow.createEl("input", { type: "number", value: "" });
     this.endInput.min = "0";
@@ -225,10 +226,10 @@ class TrimModal extends Modal {
     this.endInput.style.opacity = "0.5";
     this.endInput.placeholder = "end";
 
-    endCheck.addEventListener("change", () => {
-      this.endInput.disabled = endCheck.checked;
-      this.endInput.style.opacity = endCheck.checked ? "0.5" : "1";
-      if (endCheck.checked && this.duration) this.endInput.value = this.duration.toFixed(2);
+    this.endCheck.addEventListener("change", () => {
+      this.endInput.disabled = this.endCheck.checked;
+      this.endInput.style.opacity = this.endCheck.checked ? "0.5" : "1";
+      if (this.endCheck.checked && this.duration) this.endInput.value = this.duration.toFixed(2);
       updateTrimInfo();
     });
 
@@ -280,42 +281,66 @@ class TrimModal extends Modal {
         new Notice("⚠️ End time must be greater than start time.");
         return;
       }
-      // Show confirmation before irreversible trim
-      contentEl.empty();
-      contentEl.addClass("sb-modal-body");
-      contentEl.createEl("h2", { text: "Confirm Trim", cls: "sb-title" });
-      contentEl.createEl("p", {
-        text: `This will permanently replace the original file with the trimmed clip (${start.toFixed(2)}s → ${end.toFixed(2)}s). This cannot be undone.`,
-        cls: "sb-desc",
-      });
-
-      // Play the trimmed portion as a final preview
-      const previewAudio = contentEl.createEl("audio");
-      previewAudio.src = this.app.vault.adapter.getResourcePath(this.src);
-      previewAudio.currentTime = start;
-      previewAudio.play().catch(() => {});
-      const stopAtEnd = () => {
-        if (previewAudio.currentTime >= end) {
-          previewAudio.pause();
-          previewAudio.removeEventListener("timeupdate", stopAtEnd);
-        }
-      };
-      previewAudio.addEventListener("timeupdate", stopAtEnd);
-
-      const confirmRow = contentEl.createEl("div", { cls: "sb-btn-row" });
-      const backBtn = confirmRow.createEl("button", { text: "← Back", cls: "sb-btn sb-btn--secondary" });
-      backBtn.addEventListener("click", () => { previewAudio.pause(); this.close(); });
-      const trimBtn = confirmRow.createEl("button", { text: "✂️ Trim & Replace", cls: "sb-btn sb-btn--danger" });
-      trimBtn.addEventListener("click", () => {
-        previewAudio.pause();
+      new TrimConfirmModal(this.app, this.src, start, end, () => {
         this.close();
         this.onConfirm(start, end);
-      });
+      }).open();
     });
   }
 
   onClose() {
     if (this.audio) { this.audio.pause(); this.audio.src = ""; }
+    this.contentEl.empty();
+  }
+}
+
+class TrimConfirmModal extends Modal {
+  constructor(app, src, start, end, onConfirm) {
+    super(app);
+    this.src       = src;
+    this.start     = start;
+    this.end       = end;
+    this.onConfirm = onConfirm;
+    this.modalEl.addClass("sb-modal", "sb-modal--sm");
+  }
+
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.empty();
+    contentEl.addClass("sb-modal-body");
+
+    contentEl.createEl("h2", { text: "Confirm Trim", cls: "sb-title" });
+    contentEl.createEl("p", {
+      text: `This will permanently replace the original file with the trimmed clip (${this.start.toFixed(2)}s → ${this.end.toFixed(2)}s). This cannot be undone.`,
+      cls: "sb-desc",
+    });
+
+    // Play the trimmed portion as a final preview
+    this.previewAudio = new Audio(this.app.vault.adapter.getResourcePath(this.src));
+    this.previewAudio.currentTime = this.start;
+    this.previewAudio.play().catch(() => {});
+    const end = this.end;
+    const stopAtEnd = () => {
+      if (this.previewAudio.currentTime >= end) {
+        this.previewAudio.pause();
+        this.previewAudio.removeEventListener("timeupdate", stopAtEnd);
+      }
+    };
+    this.previewAudio.addEventListener("timeupdate", stopAtEnd);
+
+    const row = contentEl.createEl("div", { cls: "sb-btn-row" });
+    const backBtn = row.createEl("button", { text: "← Back", cls: "sb-btn sb-btn--secondary" });
+    backBtn.addEventListener("click", () => this.close());
+
+    const trimBtn = row.createEl("button", { text: "✂️ Trim & Replace", cls: "sb-btn sb-btn--danger" });
+    trimBtn.addEventListener("click", () => {
+      this.close();
+      this.onConfirm();
+    });
+  }
+
+  onClose() {
+    if (this.previewAudio) { this.previewAudio.pause(); this.previewAudio = null; }
     this.contentEl.empty();
   }
 }
@@ -501,7 +526,8 @@ module.exports = class WordSoundbite extends Plugin {
         const src = span.getAttribute("data-soundbite");
         if (!src) return;
         span.classList.add("sb-sound-word");
-        span.addEventListener("click", () => this.playSound(src));
+        const vol = parseFloat(span.getAttribute("data-volume")) || 1.0;
+        span.addEventListener("click", () => this.playSound(src, vol));
         span.addEventListener("contextmenu", (e) => {
           e.preventDefault();
           this._showSoundMenu(e, src, span.textContent);
@@ -522,7 +548,8 @@ module.exports = class WordSoundbite extends Plugin {
       span.addEventListener("click", (e) => {
         e.stopPropagation();
         const src = span.getAttribute("data-soundbite");
-        if (src) plugin.playSound(src);
+        const vol = parseFloat(span.getAttribute("data-volume")) || 1.0;
+        if (src) plugin.playSound(src, vol);
       });
       span.addEventListener("contextmenu", (e) => {
         e.preventDefault();
@@ -565,13 +592,13 @@ module.exports = class WordSoundbite extends Plugin {
     menu.showAtMouseEvent(event);
   }
 
-  async playSound(src) {
+  async playSound(src, volumeOverride) {
     // Stop any currently playing sound
     this._stopCurrentAudio();
 
     const f = this._getVaultFile(src);
     if (!f) return;
-    const volume = await this._getVolume(src);
+    const volume = volumeOverride != null ? volumeOverride : await this._getVolume(src);
     const audio  = new Audio(this.app.vault.adapter.getResourcePath(src));
     audio.volume = Math.min(volume, 1.0);
     this._currentAudio = audio;
@@ -707,8 +734,7 @@ module.exports = class WordSoundbite extends Plugin {
       }
 
       const saveFolder = this.resolveSaveFolder(this.pendingFile);
-      const safeName   = this.pendingWord.replace(/[^a-zA-Z0-9_\-]/g, "_").substring(0, 40);
-      const fileName   = `${saveFolder}/${safeName}_${Date.now()}.webm`;
+      const fileName = `${saveFolder}/${this._buildFileName(this.pendingWord)}.webm`;
 
       try { await this.app.vault.createFolder(saveFolder); } catch {}
 
@@ -949,25 +975,69 @@ module.exports = class WordSoundbite extends Plugin {
     return noteDir ? `${noteDir}/${folderName}` : folderName;
   }
 
+  _buildFileName(word) {
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, "0");
+    const YYYY = String(now.getFullYear());
+    const MM   = pad(now.getMonth() + 1);
+    const DD   = pad(now.getDate());
+    const HH   = pad(now.getHours());
+    const mm   = pad(now.getMinutes());
+    const SS   = pad(now.getSeconds());
+    const timestamp = String(Date.now());
+
+    let safeWord = word.replace(/[^a-zA-Z0-9_\-\u3000-\u9FFF\uF900-\uFAFF]/g, "_").replace(/_+/g, "_");
+    if (safeWord.length > 30) {
+      safeWord = safeWord.substring(0, 13) + "\u2026" + safeWord.substring(safeWord.length - 13);
+    }
+
+    const pattern = this.settings.fileNamePattern || "{word}_{YYYY}-{MM}-{DD}_{HH}-{mm}-{SS}";
+    return pattern
+      .replace(/\{word\}/g, safeWord)
+      .replace(/\{YYYY\}/g, YYYY)
+      .replace(/\{MM\}/g, MM)
+      .replace(/\{DD\}/g, DD)
+      .replace(/\{HH\}/g, HH)
+      .replace(/\{mm\}/g, mm)
+      .replace(/\{SS\}/g, SS)
+      .replace(/\{timestamp\}/g, timestamp);
+  }
+
 
 
   async _getVolume(src) {
-    const folder   = src.substring(0, src.lastIndexOf("/"));
-    const manifest = await loadManifest(this.app.vault, folder);
-    return (manifest._volumes && manifest._volumes[src]) || 1.0;
+    const file = this.app.workspace.getActiveFile();
+    if (!file) return 1.0;
+    const content = await this.app.vault.read(file);
+    const escapedSrc = src.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const re = new RegExp(`<span[^>]*data-soundbite="${escapedSrc}"[^>]*>`);
+    const match = content.match(re);
+    if (!match) return 1.0;
+    const volMatch = match[0].match(/data-volume="([^"]+)"/);
+    return volMatch ? parseFloat(volMatch[1]) : 1.0;
   }
 
   async _setVolume(src, volume) {
-    const folder   = src.substring(0, src.lastIndexOf("/"));
-    const manifest = await loadManifest(this.app.vault, folder);
-    if (!manifest._volumes) manifest._volumes = {};
+    const file = this.app.workspace.getActiveFile();
+    if (!file) return;
+    const content = await this.app.vault.read(file);
+    const escapedSrc = src.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    // Match span with this src, with or without existing data-volume
+    const spanRe = new RegExp(
+      `(<span\\s+)(?:data-volume="[^"]*"\\s+)?data-soundbite="${escapedSrc}"(?:\\s+data-volume="[^"]*")?`,
+      "g"
+    );
+    let newContent;
     if (volume === 1.0) {
-      delete manifest._volumes[src];
-      if (Object.keys(manifest._volumes).length === 0) delete manifest._volumes;
+      // Remove data-volume attribute
+      newContent = content.replace(spanRe, `$1data-soundbite="${src}"`);
     } else {
-      manifest._volumes[src] = Math.round(volume * 100) / 100;
+      const vol = Math.round(volume * 100) / 100;
+      newContent = content.replace(spanRe, `$1data-soundbite="${src}" data-volume="${vol}"`);
     }
-    await saveManifest(this.app.vault, folder, manifest);
+    if (newContent !== content) {
+      await this.app.vault.modify(file, newContent);
+    }
   }
 
   async _addToManifest(folder, word, filePath) {
@@ -993,7 +1063,7 @@ module.exports = class WordSoundbite extends Plugin {
     if (!file) return;
     const content = await this.app.vault.read(file);
     const escapedSrc = src.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const spanRe = new RegExp(`<span\\s+data-soundbite="${escapedSrc}">([^<]*)<\\/span>`, "g");
+    const spanRe = new RegExp(`<span\\s+data-soundbite="${escapedSrc}"(?:\\s+data-volume="[^"]*")?>([^<]*)<\\/span>`, "g");
     const newContent = content.replace(spanRe, "$1");
     if (newContent !== content) {
       await this.app.vault.modify(file, newContent);
@@ -1257,6 +1327,30 @@ class WordSoundbiteSetting extends PluginSettingTab {
            })
         );
     }
+
+    // ── File Naming ────────────────────────────────────────────────────────
+    containerEl.createEl("h3", { text: "File naming" });
+
+    const nameSetting = new Setting(containerEl)
+      .setName("File name pattern")
+      .setDesc("Tokens: {word}, {YYYY}, {MM}, {DD}, {HH}, {mm}, {SS}, {timestamp}")
+      .addText((t) => {
+        t.setPlaceholder("{word}_{YYYY}-{MM}-{DD}_{HH}-{mm}-{SS}")
+         .setValue(this.plugin.settings.fileNamePattern)
+         .onChange(async (v) => {
+           this.plugin.settings.fileNamePattern = v || "{word}_{date}_{time}";
+           await this.plugin.saveSettings();
+           previewEl.setText("Preview: " + this.plugin._buildFileName("example") + ".webm");
+         });
+        t.inputEl.style.width = "220px";
+      });
+
+    const previewEl = containerEl.createEl("p", {
+      text: "Preview: " + this.plugin._buildFileName("example") + ".webm",
+      cls: "sb-desc",
+    });
+    previewEl.style.fontSize = "12px";
+    previewEl.style.color = "var(--text-muted)";
 
     // ── Usage ──────────────────────────────────────────────────────────────
     containerEl.createEl("h2", { text: "How to use" });
