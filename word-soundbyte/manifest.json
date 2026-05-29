@@ -1,0 +1,9 @@
+{
+  "id": "word-soundbyte",
+  "name": "Word Soundbyte",
+  "version": "1.0.0",
+  "minAppVersion": "1.0.0",
+  "description": "Highlight a word, record desktop audio, click to play it back inline.",
+  "author": "You",
+  "isDesktopOnly": true
+}
