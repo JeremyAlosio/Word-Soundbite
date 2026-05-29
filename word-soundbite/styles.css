@@ -1,0 +1,198 @@
+/* Word Soundbite – Plugin Styles */
+
+@keyframes sb-pulse {
+  0%, 100% { transform: scale(1);   opacity: 1;   }
+  50%      { transform: scale(1.5); opacity: 0.4; }
+}
+
+/* ─── Sound word styling ──────────────────────────────────────────────────── */
+
+.sb-sound-word {
+  border-bottom: 2px solid var(--text-accent, #7c6af7);
+  padding-bottom: 1px;
+  cursor: pointer;
+  position: relative;
+}
+
+.sb-sound-word::after {
+  content: "🔊";
+  font-size: 0.65em;
+  vertical-align: super;
+  margin-left: 1px;
+  opacity: 0.7;
+}
+
+.sb-sound-word:hover::after {
+  opacity: 1;
+}
+
+/* ─── Modal layout ────────────────────────────────────────────────────────── */
+
+.sb-modal        { max-width: 380px; border-radius: 14px; overflow: hidden; }
+.sb-modal--sm    { max-width: 340px; border-radius: 16px; }
+.sb-modal--md    { max-width: 400px; }
+.sb-modal-body   { padding: 24px 28px; }
+.sb-modal-center { text-align: center; padding: 28px 32px 24px; }
+
+/* ─── Typography ──────────────────────────────────────────────────────────── */
+
+.sb-title    { margin: 0 0 8px; font-size: 16px; font-weight: 700; }
+.sb-subtitle { margin: 0 0 4px; color: var(--text-muted); font-size: 13px; }
+.sb-desc     { margin: 0 0 16px; color: var(--text-muted); font-size: 13px; line-height: 1.5; }
+.sb-word     { margin: 0 0 20px; font-size: 15px; font-weight: 600; color: var(--text-accent); word-break: break-all; }
+.sb-filepath { margin: 0 0 20px; font-size: 12px; color: var(--text-faint); word-break: break-all; }
+.sb-duration { margin: 0 0 12px; font-size: 12px; color: var(--text-muted); }
+
+/* ─── Timer ───────────────────────────────────────────────────────────────── */
+
+.sb-timer {
+  font-size: 26px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  margin: 0 0 24px;
+  letter-spacing: 2px;
+}
+
+/* ─── Pulsing dot ─────────────────────────────────────────────────────────── */
+
+.sb-pulse-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #e03e3e;
+  margin: 0 auto 16px;
+  animation: sb-pulse 1.2s ease-in-out infinite;
+}
+
+/* ─── Button row ──────────────────────────────────────────────────────────── */
+
+.sb-btn-row      { display: flex; gap: 10px; justify-content: center; }
+.sb-btn-row--end { justify-content: flex-end; }
+
+/* ─── Buttons ─────────────────────────────────────────────────────────────── */
+
+.sb-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 9px 20px;
+  font-size: 14px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.sb-btn--primary {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  font-weight: 600;
+}
+
+.sb-btn--secondary {
+  background: var(--background-modifier-border);
+  color: var(--text-normal);
+}
+
+.sb-btn--danger {
+  background: #e03e3e;
+  color: #fff;
+  font-weight: 700;
+}
+
+.sb-btn--ghost {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 13px;
+  padding: 4px;
+  cursor: pointer;
+}
+
+.sb-btn--block {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 10px 14px;
+}
+
+.sb-btn--outline {
+  background: var(--background-secondary);
+  color: var(--text-normal);
+  border: 1px solid var(--background-modifier-border);
+}
+
+.sb-btn--stop {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 24px;
+}
+
+/* ─── List button (match picker) ──────────────────────────────────────────── */
+
+.sb-list-btn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  margin-bottom: 8px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.15s;
+}
+
+.sb-list-btn:hover {
+  background: var(--background-modifier-hover);
+}
+
+/* ─── Input row ───────────────────────────────────────────────────────────── */
+
+.sb-input-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.sb-input-row:last-of-type {
+  margin-bottom: 20px;
+}
+
+.sb-input-row label {
+  font-size: 14px;
+  min-width: 70px;
+}
+
+.sb-input-row input {
+  flex: 1;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-secondary);
+}
+
+.sb-input-row input[type="checkbox"] {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+
+/* ─── Audio player ────────────────────────────────────────────────────────── */
+
+.sb-audio {
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+/* ─── Gutter icon ─────────────────────────────────────────────────────────── */
+
+.sb-gutter-icon {
+  color: var(--text-accent, #7c6af7);
+  cursor: default;
+  font-size: 13px;
+  padding-right: 4px;
+  opacity: 0.75;
+}
