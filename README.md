@@ -61,12 +61,14 @@ If desktop audio capture fails for any reason, the plugin automatically falls ba
 | **Recording quality** | Low (32 kbps), Medium (96 kbps), or High (192 kbps) |
 | **Folder mode** | Relative (saves next to each note) or Absolute (one fixed folder) |
 | **Subfolder name** | Name of the folder created next to notes (default: `sounds`) |
+| **File name pattern** | Customize audio file names using tokens: `{word}`, `{YYYY}`, `{MM}`, `{DD}`, `{HH}`, `{mm}`, `{SS}`, `{timestamp}` |
 
 ## How It Works
 
 - Recorded audio is saved as `.webm` files in a `sounds/` subfolder next to your note (or a custom folder)
-- A `sounds/index.json` manifest tracks which words map to which audio files, and stores per-soundbite volume settings under a `_volumes` key
+- A `sounds/index.json` manifest tracks which words map to which audio files
 - In your note, sound words are wrapped in `<span data-soundbite="path/to/file.webm">word</span>`
+- Volume adjustments are stored directly on the span: `<span data-soundbite="..." data-volume="0.65">word</span>` (omitted when 100%)
 - The plugin styles these spans with an underline and speaker icon, and attaches click-to-play behavior
 
 ## Keyboard Shortcuts
